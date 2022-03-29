@@ -10,6 +10,14 @@ np.import_array()
 DEF START_SIZE = 31
 DEF END_SIZE = 27
 
+S1 = np.dtype("S1")
+S2 = np.dtype("S2")
+S3 = np.dtype("S3")
+S4 = np.dtype("S4")
+S5 = np.dtype("S5")
+S27 = np.dtype("S27")
+S31 = np.dtype("S31")
+
 
 cdef bytes _sprintf_coord_start(
     int is_hetero,
@@ -32,7 +40,7 @@ cdef bytes _sprintf_coord_start(
         strncpy(atom_name, atom, 4)
     sprintf(
         buffer,
-        "%-6s%5s %-4s %3s %s%4s%s   ",
+        "%-6s%5s %-4s %3s %1s%4s%1s   ",
         "HETATM" if is_hetero else "ATOM",
         atom_id,
         atom_name,
@@ -63,7 +71,13 @@ cdef bytes _sprintf_coord_end(
     return buffer # [:END_SIZE].decode('UTF-8')
 
 
-cdef unicode _sprintf_coord_line(char *start, float x, float y, float z, char *end):
+cdef unicode _sprintf_coord_line(
+    char *start,
+    float x,
+    float y,
+    float z,
+    char *end
+):
     cdef char buffer[82]
     cdef char cbuffer[25]
     memset(buffer, 0, 82)
@@ -92,23 +106,37 @@ def noncoordinate_pdb_data(
 ):
     cdef size_t natoms = is_hetero.shape[0]
     cdef size_t i
-    cdef np.ndarray start = np.empty([natoms], dtype="S31")
-    cdef np.ndarray end = np.empty([natoms], dtype="S27")
-    
+    cdef np.ndarray start = np.empty([natoms], dtype=S31)
+    cdef np.ndarray end = np.empty([natoms], dtype=S27)
+    # assert inputs
+    atom_id = atom_id.astype(S5)
+    atom = atom.astype(S4)
+    resname = resname.astype(S3)
+    chain = chain.astype(S1)
+    res_id = res_id.astype(S4)
+    icode = icode.astype(S1)
+    element = element.astype(S2)
+    charge = charge.astype(S2)
     for i in range(natoms):
         start[i] = _sprintf_coord_start(
-            is_hetero[i], atom_id[i], atom[i], resname[i], chain[i], res_id[i], icode[i], element[i]
+            is_hetero[i], atom_id[i], atom[i], resname[i], chain[i],
+            res_id[i], icode[i], element[i]
         )
-        end[i] = _sprintf_coord_end(occupancy[i], temp_factor[i], element[i], charge[i])
-
+        end[i] = _sprintf_coord_end(
+            occupancy[i], temp_factor[i], element[i], charge[i]
+        )
     return start, end
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def coordinate_record_lines(np.ndarray start, float[:, :] coords, np.ndarray end):
+def coordinate_record_lines(np.ndarray start, float[:, :] coords,
+                            np.ndarray end):
     cdef size_t natoms = coords.shape[0]
     cdef size_t i
     cdef np.ndarray output = np.empty([natoms], dtype="U82")
+    # assert inputs
+    start = start.astype(S31)
+    end = end.astype(S27)
     cdef float x, y, z
     for i in range(natoms):
         x = coords[i][0]

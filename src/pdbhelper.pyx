@@ -117,6 +117,13 @@ def noncoordinate_pdb_data(
     icode = icode.astype(S1)
     element = element.astype(S2)
     charge = charge.astype(S2)
+
+    if not (is_hetero.shape[0] == atom_id.shape[0] == atom.shape[0] == 
+            resname.shape[0] == chain.shape[0] == res_id.shape[0] ==
+            icode.shape[0] == occupancy.shape[0] == temp_factor.shape[0] == 
+            element.shape[0] == charge.shape[0]):
+        raise ValueError("Expected inputs to have the same length") 
+    
     for i in range(natoms):
         start[i] = _sprintf_coord_start(
             is_hetero[i], atom_id[i], atom[i], resname[i], chain[i],
@@ -137,6 +144,8 @@ def coordinate_record_lines(np.ndarray start, float[:, :] coords,
     # assert inputs
     start = start.astype(S31)
     end = end.astype(S27)
+    if not start.shape[0] == end.shape[0] == coords.shape[0]:
+        raise ValueError("Expected inputs to have the same length")
     cdef float x, y, z
     for i in range(natoms):
         x = coords[i][0]
